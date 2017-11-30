@@ -17,7 +17,7 @@ use Yii;
  * @author Terry Zhao <2358269014@qq.com>
  * @since 1.0
  */
-class MysqldbSession implements SessionInterface
+class SessionMysqldb implements SessionInterface
 {
     protected $_sessionModelName = '\fecshop\models\mysqldb\SessionStorage';
     protected $_sessionModel;

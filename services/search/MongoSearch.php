@@ -117,6 +117,8 @@ class MongoSearch extends Service implements SearchInterface
             $coll = Yii::$service->product->coll($filter);
             if (is_array($coll['coll']) && !empty($coll['coll'])) {
                 foreach ($coll['coll'] as $one) {
+                    $one['product_id'] = $one['_id'];
+                    unset($one['_id']); 
                     //$langCodes = Yii::$service->fecshoplang->allLangCode;
                     //if(!empty($langCodes) && is_array($langCodes)){
                     //	foreach($langCodes as $langCodeInfo){
@@ -126,11 +128,10 @@ class MongoSearch extends Service implements SearchInterface
                     if (!empty($this->searchLang) && is_array($this->searchLang)) {
                         foreach ($this->searchLang as $langCode => $mongoSearchLangName) {
                             $sModel::$_lang = $langCode;
-                            $searchModel = $this->_searchModel->findOne(['_id' => $one['_id']]);
-                            if (!$searchModel['_id']) {
+                            $searchModel = $this->_searchModel->findOne(['product_id' => $one['product_id']]);
+                            
+                            if (!$searchModel['product_id']) {
                                 $searchModel = new $this->_searchModelName();
-                            }else{
-                                unset($one['_id']);
                             }
                             $one['name'] = Yii::$service->fecshoplang->getLangAttrVal($one_name, 'name', $langCode);
                             $one['description'] = Yii::$service->fecshoplang->getLangAttrVal($one_description, 'description', $langCode);
@@ -219,17 +220,26 @@ class MongoSearch extends Service implements SearchInterface
      */
     protected function actionGetSearchProductColl($select, $where, $pageNum, $numPerPage, $product_search_max_count)
     {
-        $filter = [
-            'pageNum'        => $pageNum,
-            'numPerPage'    => $numPerPage,
-            'where'        => $where,
-            'product_search_max_count' => $product_search_max_count,
-            'select'         => $select,
-        ];
-        //var_dump($filter);exit;
-        $collection = $this->fullTearchText($filter);
+        // 先进行sku搜索，如果有结果，说明是针对sku的搜索
+        
+        $searchText = $where['$text']['$search'];
+        $productM = Yii::$service->product->getBySku($searchText);
+        if ($productM) {
+            $collection['coll'][] = $productM;
+            $collection['count'] = 1;
+        } else {
+            $filter = [
+                'pageNum'        => $pageNum,
+                'numPerPage'    => $numPerPage,
+                'where'        => $where,
+                'product_search_max_count' => $product_search_max_count,
+                'select'         => $select,
+            ];
+            //var_dump($filter);exit;
+            $collection = $this->fullTearchText($filter);
+        }
         $collection['coll'] = Yii::$service->category->product->convertToCategoryInfo($collection['coll']);
-
+        //var_dump($collection);
         return $collection;
     }
 
@@ -272,7 +282,7 @@ class MongoSearch extends Service implements SearchInterface
 
         $search_data = $this->_searchModel->getCollection()->find(
             $where,
-            ['search_score'=>['$meta'=>'textScore'], 'id' => 1, 'spu'=> 1, 'score' => 1],
+            ['search_score'=>['$meta'=>'textScore'], 'id' => 1, 'spu'=> 1, 'score' => 1,'product_id' => 1],
             [
                 'sort' => ['search_score'=> ['$meta'=> 'textScore'], 'score' => -1],
                 'limit'=> $product_search_max_count,
@@ -293,9 +303,11 @@ class MongoSearch extends Service implements SearchInterface
         $limit = $numPerPage;
         $productIds = [];
         foreach ($data as $d) {
-            $productIds[] = $d['_id'];
+            $productIds[] = $d['product_id'];
         }
+        
         $productIds = array_slice($productIds, $offset, $limit);
+        
         if (!empty($productIds)) {
             $query = $this->_productModel->find()->asArray()
                     ->select($select)
@@ -306,14 +318,19 @@ class MongoSearch extends Service implements SearchInterface
              */
             $s_data = [];
             foreach ($data as $one) {
-                $_id = (string) $one['_id'];
-                $s_data[$_id] = $one;
+                if($one['_id']) {
+                    $_id = (string) $one['_id'];
+                    $s_data[$_id] = $one;
+                }
             }
             $return_data = [];
             foreach ($productIds as $product_id) {
-                $return_data[] = $s_data[(string) $product_id];
+                $pid = (string) $product_id;
+                if (isset($s_data[$pid]) && $s_data[$pid]) {
+                    $return_data[] = $s_data[$pid];
+                }
             }
-
+            
             return [
                 'coll' => $return_data,
                 'count'=> $count,

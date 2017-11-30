@@ -40,6 +40,20 @@ class ArticleMongodb implements ArticleInterface
             return new $this->_articleModelName;
         }
     }
+    /**
+     * @property $urlKey | String ,  对应表的url_key字段
+     * 根据url_key 查询得到article model
+     */
+    public function getByUrlKey($urlKey)
+    {
+        if ($urlKey) {
+            $model = $this->_articleModel->findOne(['url_key' => '/'.$urlKey]);
+            if (isset($model['url_key'])){
+                return $model;
+            }
+        }
+        return false;
+    }
 
     /*
      * example filter:
@@ -96,9 +110,22 @@ class ArticleMongodb implements ArticleInterface
         $defaultLangTitle   = Yii::$service->fecshoplang->getDefaultLangAttrVal($one['title'], 'title');
         $urlKey             = Yii::$service->url->saveRewriteUrlKeyByStr($defaultLangTitle, $originUrl, $originUrlKey);
         $model->url_key = $urlKey;
+        $this->initStatus($model);
         $model->save();
-
-        return true;
+        $model['_id'] = (string)$model['_id'];
+        return $model->attributes;
+    }
+    
+    protected function initStatus($model){
+        $statusArr = [$model::STATUS_ACTIVE, $model::STATUS_DELETED];
+        if ($model['status']) {
+            $model['status'] = (int) $model['status'];
+            if (!in_array($model['status'], $statusArr)) {
+                $model['status'] = $model::STATUS_ACTIVE;
+            }
+        } else {
+            $model['status'] = $model::STATUS_ACTIVE;
+        }
     }
 
     /**
@@ -112,6 +139,7 @@ class ArticleMongodb implements ArticleInterface
             return false;
         }
         if (is_array($ids) && !empty($ids)) {
+            $deleteAll = true;
             foreach ($ids as $id) {
                 $model = $this->_articleModel->findOne($id);
                 if (isset($model[$this->getPrimaryKey()]) && !empty($model[$this->getPrimaryKey()])) {
@@ -121,10 +149,10 @@ class ArticleMongodb implements ArticleInterface
                 } else {
                     //throw new InvalidValueException("ID:$id is not exist.");
                     Yii::$service->helper->errors->add("Article Remove Errors:ID $id is not exist.");
-
-                    return false;
+                    $deleteAll = false;
                 }
             }
+            return $deleteAll;
         } else {
             $id = $ids;
             $model = $this->_articleModel->findOne($id);

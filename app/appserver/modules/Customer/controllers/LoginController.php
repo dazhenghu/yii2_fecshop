@@ -24,40 +24,47 @@ class LoginController extends AppserverController
      * 登录用户的部分
      */
     public function actionAccount(){
+        if(Yii::$app->request->getMethod() === 'OPTIONS'){
+            return [];
+        }
         $identity = Yii::$service->customer->loginByAccessToken(get_class($this));
         if($identity){
             // 用户已经登录
-            return [
-                'code'         => 400,
-                'content'       => 'account is login',
-                
-            ];
+            
+            $code = Yii::$service->helper->appserver->account_is_logined;
+            $data = [];
+            $reponseData = Yii::$service->helper->appserver->getReponseData($code, $data);
+            
+            return $reponseData;
         }
         $email       = Yii::$app->request->post('email');
         $password    = Yii::$app->request->post('password');
-        $loginParam = \Yii::$app->getModule('customer')->params['login'];
+        $loginParam  = \Yii::$app->getModule('customer')->params['login'];
         $loginCaptchaActive = isset($loginParam['loginPageCaptcha']) ? $loginParam['loginPageCaptcha'] : false;
         if($loginCaptchaActive){
             $captcha    = Yii::$app->request->post('captcha');
             if(!Yii::$service->helper->captcha->validateCaptcha($captcha)){
-                return [
-                    'code'         => 401,
-                    'content'       => 'captcha ['.$captcha.'] is not right',
-                ];
+                $code = Yii::$service->helper->appserver->status_invalid_captcha;
+                $data = [];
+                $reponseData = Yii::$service->helper->appserver->getReponseData($code, $data);
+                
+                return $reponseData;
             }
         }
         $accessToken = Yii::$service->customer->loginAndGetAccessToken($email,$password);
         if($accessToken){
-            return [
-                'code'         => 200,
-                'content'      => 'login success',
-            ];
+            $code = Yii::$service->helper->appserver->status_success;
+            $data = [];
+            $reponseData = Yii::$service->helper->appserver->getReponseData($code, $data);
+            
+            return $reponseData;
         }else{
-            return [
-                'code'          => 402,
-                'content'       => 'email or password is not right',
-                
-            ];
+            
+            $code = Yii::$service->helper->appserver->account_login_invalid_email_or_password;
+            $data = [];
+            $reponseData = Yii::$service->helper->appserver->getReponseData($code, $data);
+            
+            return $reponseData;
         }
         
     }
@@ -67,24 +74,32 @@ class LoginController extends AppserverController
      *
      */
     public function actionIndex(){
+        if(Yii::$app->request->getMethod() === 'OPTIONS'){
+            return [];
+        }
         $identity = Yii::$service->customer->loginByAccessToken(get_class($this));
         if($identity){
             // 用户已经登录
-            return [
-                'code'          => 400,
-                'content'       => 'account is login',
-                
-            ];
+            $code = Yii::$service->helper->appserver->account_is_logined;
+            $data = [ ];
+            $reponseData = Yii::$service->helper->appserver->getReponseData($code, $data);
+            
+            return $reponseData;
         }
         $loginParam = \Yii::$app->getModule('customer')->params['login'];
         $loginCaptchaActive = isset($loginParam['loginPageCaptcha']) ? $loginParam['loginPageCaptcha'] : false;
-        return [
-            'code'              => 200,
-            'loginCaptchaActive'  => $loginCaptchaActive,
-            'googleLoginUrl'    => Yii::$service->customer->google->getLoginUrl('customer/google/loginv'),
-            'facebookLoginUrl'  => Yii::$service->customer->facebook->getLoginUrl('customer/facebook/loginv'),
-        ];
+        $googleRedirectUrl   = Yii::$app->request->get('googleRedirectUrl');
+        $facebookRedirectUrl = Yii::$app->request->get('facebookRedirectUrl');
         
+        $code = Yii::$service->helper->appserver->status_success;
+        $data = [ 
+            'loginCaptchaActive'=> $loginCaptchaActive,
+            'googleLoginUrl'    => Yii::$service->customer->google->getLoginUrl($googleRedirectUrl,true),
+            'facebookLoginUrl'  => Yii::$service->customer->facebook->getLoginUrl($facebookRedirectUrl,true),
+        ];
+        $reponseData = Yii::$service->helper->appserver->getReponseData($code, $data);
+        
+        return $reponseData;
         
     }
     

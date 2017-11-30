@@ -26,15 +26,22 @@ class StandardController extends AppserverController
      */
     public function actionStart()
     {
+        if(Yii::$app->request->getMethod() === 'OPTIONS'){
+            return [];
+        }
         //$AopSdkFile = Yii::getAlias('@fecshop/lib/alipay/AopSdk.php');
         //require($AopSdkFile);
         //echo '支付宝支付跳转中...';
         //Yii::$service->payment->alipay->devide = 'wap';
         $return_url = Yii::$app->request->post('return_url');
-        return [
-            'code' => 200,
-            'content'  => Yii::$service->payment->alipay->start($return_url,'GET'),
+       
+        $code = Yii::$service->helper->appserver->status_success;
+        $data = [
+            'redirectUrl'  => Yii::$service->payment->alipay->start($return_url,'GET'),
         ];
+        $reponseData = Yii::$service->helper->appserver->getReponseData($code, $data);
+        
+        return $reponseData;
     }
     /**
      * 从支付宝支付成功后，跳转返回 fec-shop 的部分
@@ -43,17 +50,19 @@ class StandardController extends AppserverController
     {
         $reviewStatus = Yii::$service->payment->alipay->review();
         if($reviewStatus){
-            //$successRedirectUrl = Yii::$service->payment->getStandardSuccessRedirectUrl();
-            //return Yii::$service->url->redirect($successRedirectUrl);
-            return [
-                'code' => 200,
-                'content' => 'order payment success'
-            ];
+            
+            $code = Yii::$service->helper->appserver->status_success;
+            $data = [];
+            $reponseData = Yii::$service->helper->appserver->getReponseData($code, $data);
+            
+            return $reponseData;
         }else{
-            return [
-                'code' => 401,
-                'content' => 'order payment fail'
-            ];
+            
+            $code = Yii::$service->helper->appserver->order_alipay_payment_fail;
+            $data = [];
+            $reponseData = Yii::$service->helper->appserver->getReponseData($code, $data);
+            
+            return $reponseData;
         }
     }
     /**
@@ -72,7 +81,7 @@ class StandardController extends AppserverController
             var_dump($post);
             $post_log = ob_get_clean();
             \Yii::info($post_log, 'fecshop_debug');
-            $ipnStatus = Yii::$service->payment->alipay->receiveIpn($post);
+            $ipnStatus = Yii::$service->payment->alipay->receiveIpn();
             if($ipnStatus){
                 echo 'success';
                 return;

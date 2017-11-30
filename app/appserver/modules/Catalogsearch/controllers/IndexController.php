@@ -43,6 +43,9 @@ class IndexController extends AppserverController
 
     public function actionIndex()
     {
+        if(Yii::$app->request->getMethod() === 'OPTIONS'){
+            return [];
+        }
         $this->getNumPerPage();
         //echo Yii::$service->page->translate->__('fecshop,{username}', ['username' => 'terry']);
         $this->initSearch();
@@ -53,39 +56,48 @@ class IndexController extends AppserverController
         $products = $productCollInfo['coll'];
         $this->_productCount = $productCollInfo['count'];
         //echo $this->_productCount;
-        return [
-            'code' => 200,
-            'content' => [
-                'searchText'       => $this->_searchText,
-                'products'         => $products,
-                //'query_item'       => $this->getQueryItem(),
-                'refine_by_info'   => $this->getRefineByInfo(),
-                'filter_info'      => $this->getFilterInfo(),
-                'filter_price'     => $this->getFilterPrice(),
-            ]
+        $data = [
+            'searchText'       => $this->_searchText,
+            'products'         => $products,
+            //'query_item'       => $this->getQueryItem(),
+            'refine_by_info'   => $this->getRefineByInfo(),
+            'filter_info'      => $this->getFilterInfo(),
+            'filter_price'     => $this->getFilterPrice(),
         ];
+        $code = Yii::$service->helper->appserver->status_success;
+        $reponseData = Yii::$service->helper->appserver->getReponseData($code, $data);
+        
+        return $reponseData;
     }
     
     public function actionProduct()
     {
+        if(Yii::$app->request->getMethod() === 'OPTIONS'){
+            return [];
+        }
         // 每页显示的产品个数，进行安全验证，如果个数不在预先设置的值内，则会报错。
         // 这样是为了防止恶意攻击，也就是发送很多不同的页面个数的链接，绕开缓存。
         $this->getNumPerPage();
         if(!$this->initSearch()){
-            return [
-                'code' => 300,
+            $data = [
                 'content' => 'disable',
             ];
+            $code = Yii::$service->helper->appserver->status_attack;
+            $reponseData = Yii::$service->helper->appserver->getReponseData($code, $data);
+            
+            return $reponseData;
+            
         }
         $productCollInfo = $this->getSearchProductColl();
         $products = $productCollInfo['coll'];
         $this->_productCount = $productCollInfo['count'];
-        return [
-            'code' => 200,
-            'content' => [
-                'products' => $products
-            ]
+        $data = [
+            'products' => $products
         ];
+        $code = Yii::$service->helper->appserver->status_success;
+        $reponseData = Yii::$service->helper->appserver->getReponseData($code, $data);
+        
+        return $reponseData;
         
     }
     
@@ -282,8 +294,9 @@ class IndexController extends AppserverController
      */
     protected function getSearchProductColl()
     {
+       /////////////////************
         $select = [
-            'sku', 'spu', 'name', 'image',
+            'product_id','sku', 'spu', 'name', 'image',
             'price', 'special_price',
             'special_from', 'special_to',
             'url_key', 'score',
@@ -302,20 +315,22 @@ class IndexController extends AppserverController
         $products = $productList['coll'];
         if(is_array($products) && !empty($products)){
             foreach($products as $k=>$v){
-                $i++;
-                $products[$k]['url'] = '/catalog/product/'.$v['_id']; 
-                $products[$k]['image'] = Yii::$service->product->image->getResize($v['image'],296,false);
-                $priceInfo = Yii::$service->product->price->getCurrentCurrencyProductPriceInfo($v['price'], $v['special_price'],$v['special_from'],$v['special_to']);
-                $products[$k]['price'] = isset($priceInfo['price']) ? $priceInfo['price'] : '';
-                $products[$k]['special_price'] = isset($priceInfo['special_price']) ? $priceInfo['special_price'] : '';
-                
-                if($i%2 === 0){
-                    $arr = $products[$k];
-                }else{
-                    $product_return[] = [
-                        'one' => $arr,
-                        'two' => $products[$k],
-                    ];
+                if($v['sku']){
+                    $i++;
+                    $products[$k]['url'] = '/catalog/product/'.$v['_id']; 
+                    $products[$k]['image'] = Yii::$service->product->image->getResize($v['image'],296,false);
+                    $priceInfo = Yii::$service->product->price->getCurrentCurrencyProductPriceInfo($v['price'], $v['special_price'],$v['special_from'],$v['special_to']);
+                    $products[$k]['price'] = isset($priceInfo['price']) ? $priceInfo['price'] : '';
+                    $products[$k]['special_price'] = isset($priceInfo['special_price']) ? $priceInfo['special_price'] : '';
+                    
+                    if($i%2 === 0){
+                        $arr = $products[$k];
+                    }else{
+                        $product_return[] = [
+                            'one' => $arr,
+                            'two' => $products[$k],
+                        ];
+                    }
                 }
             }
             if($i%2 === 0){

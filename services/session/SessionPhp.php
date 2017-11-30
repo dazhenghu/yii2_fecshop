@@ -17,7 +17,7 @@ use fecshop\models\mysqldb\SessionStorage;
  * @author Terry Zhao <2358269014@qq.com>
  * @since 1.0
  */
-class PhpSession implements SessionInterface
+class SessionPhp implements SessionInterface
 {
     public $timeout;
     

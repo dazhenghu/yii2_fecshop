@@ -41,6 +41,8 @@ class ProductMongodb implements ProductInterface
         return $model::STATUS_ENABLE;
     }
     
+    
+    
     public function getByPrimaryKey($primaryKey)
     {
         if ($primaryKey) {
@@ -192,11 +194,11 @@ class ProductMongodb implements ProductInterface
      * 		'pageNum'		=> 1,
      * 		'orderBy'	=> ['_id' => SORT_DESC, 'sku' => SORT_ASC ],
      * 		'where'			=> [
-                ['>','price',1],
-                ['<=','price',10]
+     *          ['>','price',1],
+     *          ['<=','price',10]
      * 			['sku' => 'uk10001'],
      * 		],
-     * 	'asArray' => true,
+     * 	    'asArray' => true,
      * ]
      * 得到总数。
      */
@@ -260,7 +262,7 @@ class ProductMongodb implements ProductInterface
     public function save($one, $originUrlKey = 'catalog/product/index')
     {
         if (!$this->initSave($one)) {
-            return;
+            return false;
         }
         $one['min_sales_qty'] = (int)$one['min_sales_qty'];
         $currentDateTime = \fec\helpers\CDate::getCurrentDateTime();
@@ -270,7 +272,7 @@ class ProductMongodb implements ProductInterface
             if (!$model) {
                 Yii::$service->helper->errors->add('Product '.$this->getPrimaryKey().' is not exist');
 
-                return;
+                return false;
             }
 
             //验证sku 是否重复
@@ -282,7 +284,7 @@ class ProductMongodb implements ProductInterface
             if ($product_one['sku']) {
                 Yii::$service->helper->errors->add('Product Sku 已经存在，请使用其他的sku');
 
-                return;
+                return false;
             }
         } else {
             $model = new $this->_productModelName();
@@ -297,7 +299,7 @@ class ProductMongodb implements ProductInterface
             if ($product_one['sku']) {
                 Yii::$service->helper->errors->add('Product Sku 已经存在，请使用其他的sku');
 
-                return;
+                return false;
             }
         }
         $model->updated_at = time();
@@ -327,14 +329,13 @@ class ProductMongodb implements ProductInterface
         /**
          * 更新产品库存。
          */
-        
         Yii::$service->product->stock->saveProductStock($product_id,$one);
         /**
          * 更新产品信息到搜索表。
          */
         Yii::$service->search->syncProductInfo([$product_id]);
 
-        return true;
+        return $model;
     }
 
     /**
@@ -344,23 +345,38 @@ class ProductMongodb implements ProductInterface
      */
     protected function initSave(&$one)
     {
-        if (!isset($one['sku']) || empty($one['sku'])) {
+        $primaryKey = $this->getPrimaryKey();
+        $PrimaryVal = 1;
+        if (!isset($one[$primaryKey]) || !$one[$primaryKey] ) {
+            $PrimaryVal = 0;
+        }
+        if (!$PrimaryVal && (!isset($one['sku']) || empty($one['sku']))) {
             Yii::$service->helper->errors->add(' sku 必须存在 ');
 
             return false;
         }
-        if (!isset($one['spu']) || empty($one['spu'])) {
+        if (!$PrimaryVal && (!isset($one['spu']) || empty($one['spu']))) {
             Yii::$service->helper->errors->add(' spu 必须存在 ');
 
             return false;
         }
         $defaultLangName = \Yii::$service->fecshoplang->getDefaultLangAttrName('name');
+        if($PrimaryVal && $one['name'] && empty($one['name'][$defaultLangName])){
+            Yii::$service->helper->errors->add(' name '.$defaultLangName.' 不能为空 ');
+
+            return false;
+        }
         if (!isset($one['name'][$defaultLangName]) || empty($one['name'][$defaultLangName])) {
             Yii::$service->helper->errors->add(' name '.$defaultLangName.' 不能为空 ');
 
             return false;
         }
         $defaultLangDes = \Yii::$service->fecshoplang->getDefaultLangAttrName('description');
+        if($PrimaryVal && $one['description'] && empty($one['description'][$defaultLangDes])){
+            Yii::$service->helper->errors->add(' description '.$defaultLangDes.' 不能为空 ');
+
+            return false;
+        }
         if (!isset($one['description'][$defaultLangDes]) || empty($one['description'][$defaultLangDes])) {
             Yii::$service->helper->errors->add(' description '.$defaultLangDes.'不能为空 ');
 
@@ -391,6 +407,7 @@ class ProductMongodb implements ProductInterface
             return false;
         }
         if (is_array($ids)) {
+            $removeAll = 1;
             foreach ($ids as $id) {
                 $model = $this->_productModel->findOne($id);
                 if (isset($model[$this->getPrimaryKey()]) && !empty($model[$this->getPrimaryKey()])) {
@@ -401,13 +418,15 @@ class ProductMongodb implements ProductInterface
                     Yii::$service->search->removeByProductId($id);
                     Yii::$service->product->stock->removeProductStock($id);
                     $model->delete();
-                    
                     //$this->removeChildCate($id);
                 } else {
                     Yii::$service->helper->errors->add("Product Remove Errors:ID:$id is not exist.");
-
-                    return false;
+                    $removeAll = 0;
                 }
+                
+            }
+            if (!$removeAll) {
+                return false;
             }
         } else {
             $id = $ids;

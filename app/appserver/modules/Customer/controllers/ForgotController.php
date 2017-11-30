@@ -21,102 +21,130 @@ class ForgotController extends AppserverController
     
     public function actionPassword()
     {
-        $identity = Yii::$service->customer->loginByAccessToken(get_class($this));
-        if($identity['id']){
-            // 用户已经登录
-            return [
-                'code'         => 400,
-                'content'       => 'account is login',
-                
-            ];
+        if(Yii::$app->request->getMethod() === 'OPTIONS'){
+            return [];
         }
+        //$identity = Yii::$service->customer->loginByAccessToken(get_class($this));
+        //if($identity['id']){
+        // 用户已经登录
+        //    $code = Yii::$service->helper->appserver->account_is_logined;
+        //    $data = [];
+        //    $reponseData = Yii::$service->helper->appserver->getReponseData($code, $data);
+        //    
+        //    return $reponseData;
+        //}
         $forgotPasswordParam = \Yii::$app->getModule('customer')->params['forgotPassword'];
         $forgotCaptchaActive = isset($forgotPasswordParam['forgotCaptcha']) ? $forgotPasswordParam['forgotCaptcha'] : false;
 
-        return [
-            'code' => 200,
+        $code = Yii::$service->helper->appserver->status_success;
+        $data = [
             'forgotCaptchaActive' => $forgotCaptchaActive,
         ];
+        $reponseData = Yii::$service->helper->appserver->getReponseData($code, $data);
+        
+        return $reponseData;
         
     }
     
     public function actionResetpassword(){
+        if(Yii::$app->request->getMethod() === 'OPTIONS'){
+            return [];
+        }
         $resetToken = Yii::$app->request->get('resetToken');
         $identity = Yii::$service->customer->findByPasswordResetToken($resetToken);
         //var_dump($identity );exit;
         if ($identity) {
-            return [
-                'code' => 200,
+            $code = Yii::$service->helper->appserver->status_success;
+            $data = [
                 'resetPasswordActive' => true,
             ];
+            $reponseData = Yii::$service->helper->appserver->getReponseData($code, $data);
+            
+            return $reponseData;
         } else {
-            return [
-                'code' => 401,
+            
+            $code = Yii::$service->helper->appserver->account_forget_password_token_timeout;
+            $data = [
                 'resetPasswordActive' => false,
             ];
+            $reponseData = Yii::$service->helper->appserver->getReponseData($code, $data);
+            
+            return $reponseData;
         }
+        
         
         
     }
     
     public function actionSubmitresetpassword(){
+        if(Yii::$app->request->getMethod() === 'OPTIONS'){
+            return [];
+        }
         $resetToken = Yii::$app->request->post('resetToken');
         $identity = Yii::$service->customer->findByPasswordResetToken($resetToken);
         //var_dump($identity );exit;
         if (!$identity) {
-            return [
-                'code' => 401,
+            $code = Yii::$service->helper->appserver->account_forget_password_token_timeout;
+            $data = [
                 'resetPasswordActive' => false,
             ];
+            $reponseData = Yii::$service->helper->appserver->getReponseData($code, $data);
+            
+            return $reponseData;
         }
         $email = Yii::$app->request->post('email');
         $password = Yii::$app->request->post('newPassword');
         $confirmation = Yii::$app->request->post('confirmPassword');
-        
+        $errorArr = [];
         if (!$email || !$password || !$confirmation) {
-            return [
-                'code' => 402,
-                'content' => 'email or password can not empty',
-            ];
+            $errorArr [] = 'email or password can not empty';
         }
         if ($password != $confirmation) {
-            return [
-                'code' => 402,
-                'content' => 'new password and confirmation password must be consistent',
+            $errorArr [] = 'new password and confirmation password must be consistent';
+        }
+        if ($identity['email'] != $email) {
+            $errorArr [] = 'email do not match the resetToken';
+        }
+        if(!empty($errorArr)){
+            $data = [
+                'error' => implode(',',$errorArr),
             ];
+            $code = Yii::$service->helper->appserver->account_forget_password_reset_param_invalid;
+            $reponseData = Yii::$service->helper->appserver->getReponseData($code, $data);
+            
+            return $reponseData;
         }
         
-        if ($identity['email'] != $email) {
-            return [
-                'code' => 402,
-                'content' => 'email do not match the resetToken',
-            ];
-        }
         $status = Yii::$service->customer->changePasswordAndClearToken($password, $identity);
         if ($status) {
-            return [
-                'code' => 200,
-                'content' => 'reset password success',
-            ];
+            $code = Yii::$service->helper->appserver->status_success;
+            $data = [ ];
+            $reponseData = Yii::$service->helper->appserver->getReponseData($code, $data);
+            
+            return $reponseData;
         }else{
-            return [
-                'code' => 403,
-                'content' => 'change password submit fail',
-            ];
+            $code = Yii::$service->helper->appserver->account_forget_password_reset_fail;
+            $data = [ ];
+            $reponseData = Yii::$service->helper->appserver->getReponseData($code, $data);
+            
+            return $reponseData;
         }
         
     }
     
     public function actionSendcode()
     {
+        if(Yii::$app->request->getMethod() === 'OPTIONS'){
+            return [];
+        }
         $identity = Yii::$service->customer->loginByAccessToken(get_class($this));
         if($identity['id']){
             // 用户已经登录
-            return [
-                'code'         => 400,
-                'content'       => 'account is login',
-                
-            ];
+            $code = Yii::$service->helper->appserver->account_is_logined;
+            $data = [];
+            $reponseData = Yii::$service->helper->appserver->getReponseData($code, $data);
+            
+            return $reponseData;
         }
         
         $email       = Yii::$app->request->post('email');
@@ -125,19 +153,21 @@ class ForgotController extends AppserverController
         if($forgotCaptchaActive){
             $captcha    = Yii::$app->request->post('captcha');
             if(!Yii::$service->helper->captcha->validateCaptcha($captcha)){
-                return [
-                    'code'         => 401,
-                    'content'       => 'captcha ['.$captcha.'] is not right',
-                ];
+                $code = Yii::$service->helper->appserver->status_invalid_captcha;
+                $data = [];
+                $reponseData = Yii::$service->helper->appserver->getReponseData($code, $data);
+                
+                return $reponseData;
             }
         }
         // 验证邮箱是否存在
         $identity = Yii::$service->customer->getUserIdentityByEmail($email);
         if(!$identity){
-            return [
-                'code'         => 401,
-                'content'      => 'customer email is not exist',
-            ];
+            $code = Yii::$service->helper->appserver->account_email_not_exist;
+            $data = [];
+            $reponseData = Yii::$service->helper->appserver->getReponseData($code, $data);
+            
+            return $reponseData;
         }
         // 发送邮件
         $domain       = Yii::$app->request->post('domain');
@@ -148,16 +178,20 @@ class ForgotController extends AppserverController
         $identity['password_reset_token'] = $passwordResetToken;
         $this->sendForgotPasswordEmail($identity);
 
-        return [
-            'code'         => 200,
-            'content'      => 'send forgot password email success',
-        ];
+        $code = Yii::$service->helper->appserver->status_success;
+        $data = [];
+        $reponseData = Yii::$service->helper->appserver->getReponseData($code, $data);
+        
+        return $reponseData;
     }
     /**
      * 发送忘记密码邮件.
      */
     protected function sendForgotPasswordEmail($identity)
     {
+        if(Yii::$app->request->getMethod() === 'OPTIONS'){
+            return [];
+        }
         if ($identity) {
             Yii::$service->email->customer->sendForgotPasswordEmail($identity);
         }

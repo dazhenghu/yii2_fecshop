@@ -15,7 +15,8 @@
 
 项目状态：
 
-> 正式版本已经出来，后台（appadmin）和pc端（appfront）,wap端（apphtml5）已经完成，完成了一些基本的api。
+> 正式版本已经出来，后台（appadmin）和pc端（appfront）,wap端（apphtml5）
+，vue端（appserver）已经完成，完成了一些基本的api。
 
 
 
@@ -29,11 +30,11 @@ Fecshop支持多语言，多货币，架构上支持pc，手机web，手机app�
 
 [Fecshop](http://www.fecshop.com) 官网：http://www.fecshop.com ，您可以在这里提交bug，问题咨询等等。
 
-[Fecshop](http://www.fecshop.com) PC Web Demo ：http://fecshop.appfront.fancyecommerce.com/
+[Fecshop](http://www.fecshop.com) 【已完成】PC Web Demo ：http://fecshop.appfront.fancyecommerce.com/
 
-[Fecshop](http://www.fecshop.com) Mobile Web Demo（WAP）：http://fecshop.apphtml5.fancyecommerce.com
+[Fecshop](http://www.fecshop.com) 【已完成】Mobile Web Demo（WAP）：http://fecshop.apphtml5.fancyecommerce.com
 
-[Fecshop](http://www.fecshop.com) Mobile VUE Demo(Appserver,前后端彻底分离模式，目前在开发中)：http://demo.fancyecommerce.com/
+[Fecshop](http://www.fecshop.com) 【已完成】Mobile VUE Demo(Appserver,前后端彻底分离模式)：http://demo.fancyecommerce.com/#/
 
 [Fecshop](http://www.fecshop.com) 后台演示地址：加QQ群，在群公告里面有后台演示地址，账号密码等信息
 
@@ -45,14 +46,18 @@ FecShop Email：2358269014@qq.com
 
 [Fecshop](http://www.fecshop.com) Github地址: https://github.com/fancyecommerce/yii2_fecshop
 
-开源协议：[Fecshop 授权协议](http://www.fecshop.com/license/)
+开源协议：[Fecshop 授权协议](http://www.fecshop.com/license)
 
-2、Fecshop文档
+2、Fecshop文档和视频
 ------------
 
-**二开以及安装文档：** [Fecshop 安装开发文档](http://www.fecshop.com/doc/fecshop-guide/develop/cn-1.0/guide-README.html)【初版文档撰写完成】
+**二开以及安装文档：** [Fecshop 安装开发文档](http://www.fecshop.com/doc/fecshop-guide/develop/cn-1.0/guide-README.html)【撰写完成】
 
-**使用帮助说明文档：** [Fecshop 使用帮助文档](http://www.fecshop.com/doc/fecshop-guide/instructions/cn-1.0/guide-README.html)【初版文档撰写完成】
+**使用帮助说明文档：** [Fecshop 使用帮助文档](http://www.fecshop.com/doc/fecshop-guide/instructions/cn-1.0/guide-README.html)【撰写完成】
+
+**安装开发帮助视频：** [Fecshop 安装开发视频](http://www.fecshop.com/doc/fecshop-guide/instructions/cn-1.0/guide-fecshop_video_install.html)【撰写完成】
+
+**前后端分离模式Api:** [Appserver VUE Api文档](http://www.fecshop.com/doc/fecshop-guide/develop/cn-1.0/guide-fecshop-server.html)【撰写完成】
 
 
 3、安装Fecshop

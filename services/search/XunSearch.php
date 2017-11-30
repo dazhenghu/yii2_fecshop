@@ -132,44 +132,52 @@ class XunSearch extends Service implements SearchInterface
 
     protected function fullTearchText($select, $where, $pageNum, $numPerPage, $product_search_max_count)
     {
-        $XunSearchQuery = $this->_searchModel->find()->asArray();
-        $XunSearchQuery->fuzzy($this->fuzzy);
-        $XunSearchQuery->synonyms($this->synonyms);
+        
+        $searchText = $where['$text']['$search'];
+        $productM = Yii::$service->product->getBySku($searchText);
+        $productIds = [];
+        if ($productM) {
+            $productIds[] = $productM['_id'];
+        } else {
+            $XunSearchQuery = $this->_searchModel->find()->asArray();
+            $XunSearchQuery->fuzzy($this->fuzzy);
+            $XunSearchQuery->synonyms($this->synonyms);
 
-        if (is_array($where) && !empty($where)) {
-            if (isset($where['$text']['$search']) && $where['$text']['$search']) {
-                $XunSearchQuery->where($where['$text']['$search']);
-            } else {
-                return [];
-            }
-            foreach ($where as $k => $v) {
-                if ($k != '$text') {
-                    $XunSearchQuery->andWhere([$k => $v]);
+            if (is_array($where) && !empty($where)) {
+                if (isset($where['$text']['$search']) && $where['$text']['$search']) {
+                    $XunSearchQuery->where($where['$text']['$search']);
+                } else {
+                    return [];
+                }
+                foreach ($where as $k => $v) {
+                    if ($k != '$text') {
+                        $XunSearchQuery->andWhere([$k => $v]);
+                    }
                 }
             }
-        }
-        $XunSearchQuery->orderBy(['score' => SORT_DESC]);
-        $XunSearchQuery->limit($product_search_max_count);
-        $XunSearchQuery->offset(0);
-        $search_data = $XunSearchQuery->all();
+            $XunSearchQuery->orderBy(['score' => SORT_DESC]);
+            $XunSearchQuery->limit($product_search_max_count);
+            $XunSearchQuery->offset(0);
+            $search_data = $XunSearchQuery->all();
 
-        $data = [];
-        foreach ($search_data as $one) {
-            if (!isset($data[$one['spu']])) {
-                $data[$one['spu']] = $one;
+            $data = [];
+            foreach ($search_data as $one) {
+                if (!isset($data[$one['spu']])) {
+                    $data[$one['spu']] = $one;
+                }
             }
+
+            $count = count($data);
+            $offset = ($pageNum - 1) * $numPerPage;
+            $limit = $numPerPage;
+            $productIds = [];
+            foreach ($data as $d) {
+                $productIds[] = new \MongoDB\BSON\ObjectId($d['_id']);
+            }
+
+            $productIds = array_slice($productIds, $offset, $limit);
         }
-
-        $count = count($data);
-        $offset = ($pageNum - 1) * $numPerPage;
-        $limit = $numPerPage;
-        $productIds = [];
-        foreach ($data as $d) {
-            $productIds[] = new \MongoDB\BSON\ObjectId($d['_id']);
-        }
-
-        $productIds = array_slice($productIds, $offset, $limit);
-
+        
         if (!empty($productIds)) {
             $query = $this->_productModel->find()->asArray()
                     ->select($select)
@@ -181,13 +189,17 @@ class XunSearch extends Service implements SearchInterface
             $s_data = [];
             foreach ($data as $one) {
                 $_id = (string) $one['_id'];
-                $s_data[$_id] = $one;
+                if($_id){
+                    $s_data[$_id] = $one;
+                }
             }
             $return_data = [];
             foreach ($productIds as $product_id) {
-                $return_data[] = $s_data[(string) $product_id];
+                $pid = (string) $product_id;
+                if (isset($s_data[$pid]) && $s_data[$pid]) {
+                    $return_data[] = $s_data[$pid];
+                }
             }
-
             return [
                 'coll' => $return_data,
                 'count'=> $count,
@@ -217,7 +229,7 @@ class XunSearch extends Service implements SearchInterface
                 }
             }
         }
-        echo $sh;
+        //echo $sh;
 
         $docs = $_search->setQuery($text.$sh)
             ->setFacets([$filter_attr])

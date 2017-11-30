@@ -25,6 +25,9 @@ class ProductreviewController extends AppserverTokenController
 
     public function actionIndex()
     {
+        if(Yii::$app->request->getMethod() === 'OPTIONS'){
+            return [];
+        }
         $this->pageNum = Yii::$app->request->get($this->_page);
         $this->pageNum = $this->pageNum ? $this->pageNum : 1;
         $identity = Yii::$app->user->identity;
@@ -53,18 +56,18 @@ class ProductreviewController extends AppserverTokenController
         }else{
             $coll = [];
         }
-        
-        return [
-            'code'          => 200,
+        $code = Yii::$service->helper->appserver->status_success;
+        $data = [
             'productList'   => $coll,
             'count'         => $count,
             'numPerPage'    => $this->numPerPage,
             'noActiveStatus'=> Yii::$service->product->review->noActiveStatus(),
             'refuseStatus'  => Yii::$service->product->review->refuseStatus(),
             'activeStatus'  => Yii::$service->product->review->activeStatus(),
-        
         ];
-    
+        $reponseData = Yii::$service->helper->appserver->getReponseData($code, $data);
+        
+        return $reponseData;
     }
 
     

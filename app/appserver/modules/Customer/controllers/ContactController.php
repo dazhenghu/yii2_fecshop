@@ -24,6 +24,9 @@ class ContactController extends AppserverController
      * 登录用户的部分
      */
     public function actionIndex(){
+        if(Yii::$app->request->getMethod() === 'OPTIONS'){
+            return [];
+        }
         $identity = Yii::$service->customer->loginByAccessToken(get_class($this));
         $customer_name = '';
         $customer_email= '';
@@ -47,54 +50,58 @@ class ContactController extends AppserverController
             $contactsEmail = Yii::$service->email->contactsEmailAddress();
         }
         
-        return [
-            'code'              => 200,
+        $code = Yii::$service->helper->appserver->status_success;
+        $data = [
             'customer_name'     => $customer_name,
             'customer_email'    => $customer_email,
             'contactsCaptchaActive'   => $contactsCaptcha,
             'contactsEmail'     => $contactsEmail,
         ];
+        $reponseData = Yii::$service->helper->appserver->getReponseData($code, $data);
+        
+        return $reponseData;
         
     }
     
     public function actionSubmit(){
+        if(Yii::$app->request->getMethod() === 'OPTIONS'){
+            return [];
+        }
         $customer_name  = Yii::$app->request->post('customer_name');
         $email          = Yii::$app->request->post('email');
         $telephone      = Yii::$app->request->post('telephone');
         $comment        = Yii::$app->request->post('comment');
         $captcha        = Yii::$app->request->post('captcha');
+        $errorArr = [];
         if(!$customer_name){
-            return [
-                'code' => 401,
-                'content' => 'customer name can not empty',
-            ];
+            $errorArr[] = 'customer name can not empty';
         }
         if(!$email){
-            return [
-                'code' => 401,
-                'content' => 'email can not empty',
-            ];
+            $errorArr[] = 'email can not empty';
         }
-        if(!$telephone){
-            return [
-                'code' => 401,
-                'content' => 'telephone can not empty',
-            ];
+        if (!$telephone) {
+            $errorArr[] = 'telephone can not empty';
         }
-        if(!$comment){
-            return [
-                'code' => 401,
-                'content' => 'comment can not empty',
-            ];
+        if (!$comment) {
+            $errorArr[] = 'comment can not empty';
         }
+        if (!empty($errorArr)) {
+            $code = Yii::$service->helper->appserver->status_miss_param;
+            $data = [];
+            $message = implode(',',$errorArr);
+            $reponseData = Yii::$service->helper->appserver->getReponseData($code, $data, $message);
+            
+            return $reponseData;
+        }   
         $contacts = Yii::$app->getModule('customer')->params['contacts'];
         $contactsCaptcha = $contacts['contactsCaptcha'] ? true : false;
         if($contactsCaptcha){
             if(!Yii::$service->helper->captcha->validateCaptcha($captcha)){
-                return [
-                    'code'         => 401,
-                    'content'       => 'captcha ['.$captcha.'] is not right',
-                ];
+                $code = Yii::$service->helper->appserver->status_invalid_captcha;
+                $data = [];
+                $reponseData = Yii::$service->helper->appserver->getReponseData($code, $data);
+                
+                return $reponseData;
             }
             
         }
@@ -107,15 +114,22 @@ class ContactController extends AppserverController
             'email'         => $email,
         ];
         if (Yii::$service->email->customer->sendContactsEmail($paramData)) {
-            return [
-                'code' => 200,
-                'content' => 'contact us success'
+            $code = Yii::$service->helper->appserver->status_success;
+            $data = [
+                'content' => 'contact us success',
             ];
+            $reponseData = Yii::$service->helper->appserver->getReponseData($code, $data);
+            
+            return $reponseData;
         }else{
-            return [
-                'code' => 401,
-                'content' => 'contact us fail'
+            
+            $code = Yii::$service->helper->appserver->account_contact_us_send_email_fail;
+            $data = [
+                'content' => 'contact us success',
             ];
+            $reponseData = Yii::$service->helper->appserver->getReponseData($code, $data);
+            
+            return $reponseData;
         }
         
     }

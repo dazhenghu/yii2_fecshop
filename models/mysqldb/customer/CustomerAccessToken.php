@@ -13,7 +13,6 @@ use Yii;
 use fecshop\models\mysqldb\Customer; 
 use yii\base\NotSupportedException;  
 use yii\behaviors\TimestampBehavior;  
-use yii\db\ActiveRecord;  
 use yii\web\IdentityInterface;  
 use yii\filters\RateLimitInterface;  
 

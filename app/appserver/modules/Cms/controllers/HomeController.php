@@ -18,22 +18,56 @@ use Yii;
  */
 class HomeController extends AppserverController
 {
-    
+    public function behaviors()
+    {
+        $behaviors = parent::behaviors();
+        $cacheName = 'home';
+        if (Yii::$service->cache->isEnable($cacheName)) {
+            $timeout = Yii::$service->cache->timeout($cacheName);
+            $disableUrlParam = Yii::$service->cache->timeout($cacheName);
+            $get = Yii::$app->request->get();
+            // 存在无缓存参数，则关闭缓存
+            if (isset($get[$disableUrlParam])) {
+                $behaviors[] =  [
+                    'enabled' => false,
+                    'class' => 'yii\filters\PageCache',
+                    'only' => ['index'],
+                ];
+            }
+            $store = Yii::$service->store->currentStore;
+            $currency = Yii::$service->page->currency->getCurrentCurrency();
+
+            $behaviors[] =  [
+                'enabled' => true,
+                'class' => 'yii\filters\PageCache',
+                'only' => ['index'],
+                'duration' => $timeout,
+                'variations' => [
+                    $store, $currency,
+                ],
+            ];
+        }
+
+        return $behaviors;
+    }
     public function actionIndex(){
+        if(Yii::$app->request->getMethod() === 'OPTIONS'){
+            return [];
+        }
         $advertiseImg = $this->getAdvertise();
         $productList  = $this->getProduct();
         $language = $this->getLang();
         $currency = $this->getCurrency();
-        return [
-            'code' => 200,
-            'content' => [
+        $code = Yii::$service->helper->appserver->status_success;
+        $data = [
                 'productList' => $productList,
                 'advertiseImg'=> $advertiseImg,
                 'language'    => $language,
                 'currency'    => $currency,
-            ]
-        ];
+            ];
+        $reponseData = Yii::$service->helper->appserver->getReponseData($code, $data);
         
+        return $reponseData;
     }
     
     public function getAdvertise(){
@@ -59,7 +93,7 @@ class HomeController extends AppserverController
     
     public function getProduct(){
         $featured_skus = Yii::$app->controller->module->params['homeFeaturedSku'];
-        Yii::$service->session->getUUID();
+        //Yii::$service->session->getUUID();
         return $this->getProductBySkus($featured_skus);
     }
     

@@ -13,49 +13,33 @@ use Yii;
 use yii\filters\auth\CompositeAuth;
 use yii\filters\auth\HttpBasicAuth;
 use yii\filters\auth\HttpBearerAuth;
-use yii\filters\auth\QueryParamAuth;
-use yii\rest\ActiveController;
+use fecshop\yii\filters\auth\AppapiQueryParamAuth;  
+use yii\rest\Controller;
 use yii\web\Response;
+use yii\filters\RateLimiter; 
 
 /**
  * @author Terry Zhao <2358269014@qq.com>
  * @since 1.0
  */
-class AppapiController extends ActiveController
+class AppapiController extends Controller
 {
     public $blockNamespace;
-
+    public $enableCsrfValidation = false ;
+    
     public function init()
     {
         parent::init();
-        \Yii::$app->user->enableSession = false;
+        Yii::$app->user->enableSession = false;
     }
 
-    public function behaviors()
+
+   public function behaviors()
     {
         $behaviors = parent::behaviors();
-        /*
-        $behaviors['authenticator'] = [
-                'class' => CompositeAuth::className(),
-                'authMethods' => [
-                        # 下面是三种验证access_token方式
-                        //HttpBasicAuth::className(),
-                        //HttpBearerAuth::className(),
-                        # 这是GET参数验证的方式
-                        # http://10.10.10.252:600/user/index/index?access-token=xxxxxxxxxxxxxxxxxxxx
-                        QueryParamAuth::className(),
-                ],
-
-        ];
-        */
-        $behaviors = parent::behaviors();
-        $behaviors['authenticator'] = [
-            'class' => HttpBasicAuth::className(),
-        ];
-
-        //定义返回格式是：JSON
         $behaviors['contentNegotiator']['formats']['text/html'] = Response::FORMAT_JSON;
 
+        //$behaviors['contentNegotiator']['formats']['text/html'] = Response::FORMAT_JSON;
         return $behaviors;
     }
 
